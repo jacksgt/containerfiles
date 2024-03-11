@@ -1,0 +1,6 @@
+# https://hub.docker.com/_/alpine
+FROM docker.io/library/alpine:3.19
+
+COPY entrypoint.sh /usr/local/bin/
+
+ENTRYPOINT /usr/local/bin/entrypoint.sh
