@@ -1,0 +1,94 @@
+name: Build and Publish Container Images
+on:
+  push:
+    # tags:
+    #   - '*'
+    branches:
+      - main
+
+env:
+  IMAGE_BASE: "gchr.io/${{ github.repository }}/"
+  REPO_URL: "${{ github.server_url }}/${{ github.repository }}.git"
+  GIT_REF: "${{ github.sha }}"
+  LICENSE: "MIT"
+
+jobs:
+  find_containerfiles:
+    name: Find all Containerfiles
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+      # https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
+      # https://github.com/docker/build-push-action#examples
+      - run: |
+          matrix=$(
+            find . -type f -regextype posix-extended -regex ".*/(Containerfile|Dockerfile)" \
+              -printf '{"image": "'${IMAGE_BASE}'%h", "context": "%h", "file": "%f"}\n' | \
+              sed 's#/./#/#' | jq -s .
+          )
+          # log to terminal
+          echo "$matrix" | jq .
+          # save output in GHA
+          echo "::set-output name=matrix::$matrix"
+
+  lint_containerfiles:
+    name: Lint Containerfiles with hadolint
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{fromJson(needs.matrix.outputs.matrix)}}
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+      - uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: ${{ matrix.file }}
+          # ignore: "DL4006,DL3008,DL3018"
+
+  push_images_to_registries:
+    name: Push Container Images
+    runs-on: ubuntu-latest
+    needs: [find_containerfiles, lint_containerfiles]
+    environment: docker-build
+    permissions:
+      packages: write
+      contents: read
+    strategy:
+      matrix: ${{fromJson(needs.matrix.outputs.matrix)}}
+    steps:
+      - name: 'Check out the repo'
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+
+      - name: 'Set up QEMU'
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: 'arm64,arm'
+
+      - name: 'Set up Docker Buildx'
+        uses: docker/setup-buildx-action@v3
+        with:
+          buildkitd-flags: --debug
+
+      - name: 'Login to GHCR'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+        # https://github.com/docker/build-push-action#examples
+      - name: 'Build and push latest fpm-alpine container images'
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.build_context }}
+          file: ${{ matrix.file }}
+          tags: ${{ matrix.image }}
+          pull: true
+          push: true
+          # labels: ${{ steps.metadata-fpm-alpine.outputs.labels }}
+          platforms: linux/amd64,linux/arm64
+          # https://specs.opencontainers.org/image-spec/annotations/
+          labels: |
+            org.opencontainers.image.source=${{ env.REPO_URL }}
+            org.opencontainers.image.revision=${{ env.GIT_REF }}
+            org.opencontainers.image.licenses=${{ env.LICENSE }}
