@@ -26,7 +26,7 @@ jobs:
           matrix=$(
             find . -type f -regextype posix-extended -regex ".*/(Containerfile|Dockerfile)" \
               -printf '{"image": "'${IMAGE_BASE}'%h", "context": "%h", "file": "%f"}\n' | \
-              sed 's#/./#/#' | jq -s .
+              sed 's#/./#/#' | jq -s -c .
           )
           # log to terminal
           echo "$matrix" | jq .
