@@ -39,7 +39,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [find_containerfiles]
     strategy:
-      matrix: ${{ fromJson(needs.find_containerfiles.outputs.matrix) }}
+      # https://docs.github.com/en/actions/learn-github-actions/expressions#example-returning-a-json-object
+      matrix: ${{ fromJSON(needs.find_containerfiles.outputs.matrix) }}
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
       - uses: hadolint/hadolint-action@v3.1.0
@@ -48,7 +49,7 @@ jobs:
           # ignore: "DL4006,DL3008,DL3018"
 
   push_images_to_registries:
-    name: Push Container Images
+    name: Push Container Images with Docker Buildx
     runs-on: ubuntu-latest
     needs: [find_containerfiles, lint_containerfiles]
     environment: docker-build
@@ -56,7 +57,8 @@ jobs:
       packages: write
       contents: read
     strategy:
-      matrix: ${{fromJson(needs.find_containerfiles.outputs.matrix)}}
+      # https://docs.github.com/en/actions/learn-github-actions/expressions#example-returning-a-json-object
+      matrix: ${{ fromJSON(needs.find_containerfiles.outputs.matrix) }}
     steps:
       - name: 'Check out the repo'
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
