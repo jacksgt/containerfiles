@@ -37,7 +37,7 @@ jobs:
     name: Lint Containerfiles with hadolint
     runs-on: ubuntu-latest
     strategy:
-      matrix: ${{fromJson(needs.matrix.outputs.matrix)}}
+      matrix: ${{fromJson(needs.find_containerfiles.outputs.matrix)}}
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
       - uses: hadolint/hadolint-action@v3.1.0
@@ -54,7 +54,7 @@ jobs:
       packages: write
       contents: read
     strategy:
-      matrix: ${{fromJson(needs.matrix.outputs.matrix)}}
+      matrix: ${{fromJson(needs.find_containerfiles.outputs.matrix)}}
     steps:
       - name: 'Check out the repo'
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
