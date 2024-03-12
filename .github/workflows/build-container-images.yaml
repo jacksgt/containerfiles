@@ -26,7 +26,7 @@ jobs:
         run: |
           matrix=$(
             find . -type f -regextype posix-extended -regex ".*/(Containerfile|Dockerfile)" \
-              -printf '{"image": "'${IMAGE_BASE}'%h:latest", "context": "%h", "file": "%f"}\n' | \
+              -printf '{"image": "'${IMAGE_BASE}'%h:latest", "context": "%h", "filepath": "%p", "filename": "%f"}\n' | \
               sed 's#/./#/#' | jq -s -c .
           )
           # log to terminal
@@ -54,7 +54,7 @@ jobs:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
       - uses: hadolint/hadolint-action@v3.1.0
         with:
-          dockerfile: ${{ matrix.file }}
+          dockerfile: ${{ matrix.filepath }}
           # ignore: "DL4006,DL3008,DL3018"
 
   push_images_to_registries:
@@ -94,11 +94,10 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ${{ matrix.build_context }}
-          file: ${{ matrix.file }}
+          file: ${{ matrix.filepath }}
           tags: ${{ matrix.image }}
           pull: true
           push: true
-          # labels: ${{ steps.metadata-fpm-alpine.outputs.labels }}
           platforms: linux/amd64,linux/arm64
           # https://specs.opencontainers.org/image-spec/annotations/
           labels: |
