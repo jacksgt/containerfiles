@@ -29,10 +29,18 @@ jobs:
               sed 's#/./#/#' | jq -s -c .
           )
           # log to terminal
-          echo "$matrix" | jq .
+          # echo "$matrix" | jq .
           # save output in GHA
           # https://github.blog/changelog/2022-10-11-github-actions-deprecating-save-state-and-set-output-commands/
-          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          echo "matrix=${matrix}" >> "$GITHUB_OUTPUT"
+
+  test_matrix:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: [find_containerfiles]
+    steps:
+    - name: Check
+      run: jq . <<< '${{ needs.find_containerfiles.outputs.matrix }}'
 
   lint_containerfiles:
     name: Lint Containerfiles with hadolint
