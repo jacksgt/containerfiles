@@ -22,17 +22,18 @@ jobs:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
       # https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs
       # https://github.com/docker/build-push-action#examples
-      - run: |
+      - id: set-matrix
+        run: |
           matrix=$(
             find . -type f -regextype posix-extended -regex ".*/(Containerfile|Dockerfile)" \
-              -printf '{"image": "'${IMAGE_BASE}'%h", "context": "%h", "file": "%f"}\n' | \
+              -printf '{"image": "'${IMAGE_BASE}'%h:latest", "context": "%h", "file": "%f"}\n' | \
               sed 's#/./#/#' | jq -s -c .
           )
           # log to terminal
-          echo "$matrix" | jq .
+          # echo "$matrix" | jq .
           # save output in GHA
           # https://github.blog/changelog/2022-10-11-github-actions-deprecating-save-state-and-set-output-commands/
-          echo "matrix={\"include\":${matrix}}" >> "$GITHUB_OUTPUT"
+          echo "matrix={\"include\":${matrix}}" >> $GITHUB_OUTPUT
 
   test_matrix:
     name: Test
